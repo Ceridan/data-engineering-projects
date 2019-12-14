@@ -5,7 +5,6 @@ user_table_drop = "DROP TABLE IF EXISTS users;"
 song_table_drop = "DROP TABLE IF EXISTS songs;"
 artist_table_drop = "DROP TABLE IF EXISTS artists;"
 time_table_drop = "DROP TABLE IF EXISTS time;"
-userlevel_table_drop = "DROP TABLE IF EXISTS userlevels;"
 
 # CREATE TABLES
 
@@ -14,12 +13,12 @@ songplay_table_create = ("""
         songplay_id int,
         start_time timestamp,
         user_id int,
+        level varchar(100),
         song_id char(18),
         artist_id char(18),
         session_id int,
-        user_agent text,
-        level varchar(100),
-        location text
+        location text,
+        user_agent text
     );  
 """)
 
@@ -29,7 +28,7 @@ user_table_create = ("""
         first_name varchar(100),
         last_name varchar(100),
         gender char(1),
-        userlevel_id int
+        level varchar(100)
     );
 """)
 
@@ -65,43 +64,31 @@ time_table_create = ("""
     );
 """)
 
-userlevel_table_create = ("""
-    CREATE TABLE userlevels(
-        userlevel_id int,
-        name varchar(100)
-    );
-""")
-
 # INSERT RECORDS
 
 songplay_table_insert = ("""
-    INSERT INTO songplays(songplay_id, start_time, user_id, song_id, artist_id, session_id, user_agent, level, location)
-    VALUES (%d, %d, %s, %s, %s, %d, %s, %s, %s);
+    INSERT INTO songplays(songplay_id, start_time, user_id, level, song_id, artist_id, session_id, location, user_agent)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
 """)
 
 user_table_insert = ("""
-    INSERT INTO users(user_id, first_name, last_name, gender, userlevel_id)
-    VALUES (%d, %s, %s, %s, %d);
+    INSERT INTO users(user_id, first_name, last_name, gender, level)
+    VALUES (%s, %s, %s, %s, %s);
 """)
 
 song_table_insert = ("""
     INSERT INTO songs(song_id, title, artist_id, year, duration)
-    VALUES (%s, %s, %s, %d, %f);
+    VALUES (%s, %s, %s, %s, %s);
 """)
 
 artist_table_insert = ("""
     INSERT INTO artists(artist_id, name, location, latitude, longitude)
-    VALUES (%s, %s, %s, %f, %f);
+    VALUES (%s, %s, %s, %s, %s);
 """)
 
 time_table_insert = ("""
     INSERT INTO time(start_time, hour, day, week, month, year, weekday) 
-    VALUES (%d, %d, %d, %d, %d, %d, %d);
-""")
-
-userlevels_table_insert = ("""
-    INSERT INTO userlevels(userlevel_id, name) 
-    VALUES (%d, %s);
+    VALUES (%s, %s, %s, %s, %s, %s, %s);
 """)
 
 # FIND SONGS
@@ -116,8 +103,7 @@ create_table_queries = [
     user_table_create,
     song_table_create,
     artist_table_create,
-    time_table_create,
-    userlevel_table_create
+    time_table_create
 ]
 
 drop_table_queries = [
@@ -125,6 +111,5 @@ drop_table_queries = [
     user_table_drop,
     song_table_drop,
     artist_table_drop,
-    time_table_drop,
-    userlevel_table_drop
+    time_table_drop
 ]
