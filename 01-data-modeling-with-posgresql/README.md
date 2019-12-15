@@ -44,6 +44,7 @@ Here is the list of project files and their purpose:
 - `etl.py` implements the ETL pipeline. This script processes all the JSON files and fill the relational database.
 - `etl.ipynb` is a Jupyter notebook which allows user to step by step test all steps from the ETL pipeline, but it works only with a single song and single artist instead of all songs and artists. `Do not use it in the production.`
 - `test.ipynb` is a Jupyter notebook to quick check data that currently written in the database during the development process. `Do not use it in the production.`
+- `dashboard.ipynb` is a Jupyter notebook for the BI-team to run analytical queries against sparkifydb.
 - `README.md` – this README file. 
 
 ## How to prepare the database and run ETL pipeline
@@ -54,10 +55,21 @@ Here is the list of project files and their purpose:
     python create_tables.py
     ```
    
-2. Run `etl.py` to execute the ETl pipeline:
+2. Run `etl.py` to execute the ETL pipeline:
    
    ```bash
    python etl.py 
    ```
 
 If both steps are executed correctly without errors then the database is ready for analytic queries.
+
+## Dashboard for analytic queries
+
+`dashboard.ipynb` has examples of analytical queries against `sparkifydb`.
+
+Currently, you can run following queries:
+- How many unique users have Sparkify? How many free/paid users?
+- Find top 10 most popular songs to build top charts.
+- Report: Weekly statistics to understand how many songs users listen weekly and how many unique users use Sparkify.
+
+and of course you can write your own queries!
