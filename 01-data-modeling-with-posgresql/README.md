@@ -14,6 +14,24 @@ Project goals summary:
 - Build ETL pipeline to process raw data which is stored in JSON files and insert it to the relational database.
 - Prepare dashboard with examples of analytical queries against relational database.
 
+## Database schema
+
+Database schema contains 4 dimension tables (songs, artists, users and time) and 1 fact table (songplays):
+- `songs` dimension table contains information about each song in the Sparkify collection.
+- `artists` dimension table contains information about artists.
+- `users` dimension table describes Sparkify service users.
+- `time` dimension table serves for better describe time intervals.
+- `songplays` fact table keeps information what (and when) users are listen to.
+
+> Remark 1. `songplays` table contains auto-increment key to unique identify each row. Bigserial data type was chosen because this table suppose to grow very fast. 
+
+> Remark 2. `songplays` contains some redundant data, for example field `level` is duplicated in the `users` table. This is done intentionally to avoid unnecessary table joins while querying the data which can significantly improve query performance.
+
+> Remark 3. There are no explicit references (foreign keys) in the database. It is done for optimize ETL workflow. ETL pipeline is responsible for the data consistency.   
+
+Full database schema is shown on the following image:
+
+![sparkifydb](sparkifydb.png)
 
 ## Project files
 
@@ -31,13 +49,15 @@ Here is the list of project files and their purpose:
 ## How to prepare the database and run ETL pipeline
 
 1. Run `create_tables.py`. For example, you can do it from the Terminal:
+    
     ```bash
     python create_tables.py
     ```
    
-2. Run `etl.py` to execute the ETl pipeline.
-    ```bash
+2. Run `etl.py` to execute the ETl pipeline:
+   
+   ```bash
    python etl.py 
    ```
 
-If both steps are executed correctly without errors then the database is ready for analytical queries.
+If both steps are executed correctly without errors then the database is ready for analytic queries.
