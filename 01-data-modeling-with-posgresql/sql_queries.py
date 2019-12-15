@@ -24,7 +24,7 @@ songplay_table_create = ("""
 
 user_table_create = ("""
     CREATE TABLE users(
-        user_id int,
+        user_id int NOT NULL,
         first_name varchar(100),
         last_name varchar(100),
         gender char(1),
@@ -34,7 +34,7 @@ user_table_create = ("""
 
 song_table_create = ("""
     CREATE TABLE songs(
-        song_id char(18),
+        song_id char(18) NOT NULL,
         title varchar(100),
         artist_id char(18),
         year int,
@@ -44,7 +44,7 @@ song_table_create = ("""
 
 artist_table_create = ("""
     CREATE TABLE artists(
-        artist_id char(18),
+        artist_id char(18) NOT NULL,
         name varchar(100),
         location text,
         latitude numeric,
@@ -54,7 +54,7 @@ artist_table_create = ("""
 
 time_table_create = ("""
     CREATE TABLE time(
-        start_time timestamp,
+        start_time timestamp NOT NULL,
         hour int,
         day int,
         week int,
@@ -73,22 +73,26 @@ songplay_table_insert = ("""
 
 user_table_insert = ("""
     INSERT INTO users(user_id, first_name, last_name, gender, level)
-    VALUES (%s, %s, %s, %s, %s);
+    VALUES (%s, %s, %s, %s, %s)
+    ON CONFLICT (user_id) DO NOTHING;
 """)
 
 song_table_insert = ("""
     INSERT INTO songs(song_id, title, artist_id, year, duration)
-    VALUES (%s, %s, %s, %s, %s);
+    VALUES (%s, %s, %s, %s, %s)
+    ON CONFLICT (song_id) DO NOTHING;
 """)
 
 artist_table_insert = ("""
     INSERT INTO artists(artist_id, name, location, latitude, longitude)
-    VALUES (%s, %s, %s, %s, %s);
+    VALUES (%s, %s, %s, %s, %s)
+    ON CONFLICT (artist_id) DO NOTHING;
 """)
 
 time_table_insert = ("""
     INSERT INTO time(start_time, hour, day, week, month, year, weekday) 
-    VALUES (%s, %s, %s, %s, %s, %s, %s);
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
+    ON CONFLICT (start_time) DO NOTHING;
 """)
 
 # FIND SONGS
