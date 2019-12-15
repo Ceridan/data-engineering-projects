@@ -30,7 +30,7 @@ def process_log_file(cur, filepath):
 
     # insert time data records
     time_data = (t, t.dt.hour, t.dt.day, t.dt.week, t.dt.month, t.dt.year, t.dt.weekday)
-    column_labels = ('start_time', 'hour', 'day', 'week', 'month', 'year','weekday')
+    column_labels = ('start_time', 'hour', 'day', 'week', 'month', 'year', 'weekday')
     time_df = pd.DataFrame(dict(zip(column_labels, time_data)))
 
     for i, row in time_df.iterrows():
@@ -56,7 +56,8 @@ def process_log_file(cur, filepath):
             songid, artistid = None, None
 
         # insert songplay record
-        songplay_data = (pd.to_datetime(row.ts, unit='ms'), row.userId, row.level, songid, artistid, row.sessionId, row.location, row.userAgent)
+        songplay_data = (pd.to_datetime(row.ts, unit='ms'), row.userId, row.level, songid, artistid, row.sessionId,
+                         row.location, row.userAgent)
         cur.execute(songplay_table_insert, songplay_data)
 
 
@@ -64,8 +65,8 @@ def process_data(cur, conn, filepath, func):
     # get all files matching extension from directory
     all_files = []
     for root, dirs, files in os.walk(filepath):
-        files = glob.glob(os.path.join(root,'*.json'))
-        for f in files :
+        files = glob.glob(os.path.join(root, '*.json'))
+        for f in files:
             all_files.append(os.path.abspath(f))
 
     # get total number of files found
