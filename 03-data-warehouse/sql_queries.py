@@ -10,7 +10,6 @@ LOG_DATA = config.get('S3', 'LOG_DATA')
 LOG_JSONPATH = config.get('S3', 'LOG_JSONPATH')
 SONG_DATA = config.get('S3', 'SONG_DATA')
 
-
 # CREATE SCHEMAS
 
 staging_schema_create = "CREATE SCHEMA IF NOT EXISTS stg;"
@@ -143,20 +142,117 @@ staging_songs_copy = ("""
 """).format(SONG_DATA, IAM_ROLE)
 
 # FINAL TABLES
-
+# Load songplays from staging tables. Using LEFT JOIN to join "stg.events" with "stg.songs"
+# because it is possible situation when some song is missing in the metadata
+# but we want to keep such events for further investigation.
 songplay_table_insert = ("""
+    INSERT INTO songplays(
+        start_time
+        , user_id
+        , level
+        , song_id
+        , artist_id
+        , session_id
+        , location
+        , user_agent
+    )
+    SELECT e.ts
+        , e.userId
+        , e.level
+        , s.song_id
+        , s.artist_id
+        , e.sessionId
+        , e.location
+        , e.userAgent
+    FROM stg.events e
+    LEFT JOIN stg.songs s ON s.title = e.song
+    WHERE e.Page = 'NextSong';
 """)
 
+# Load "users" is a bit tricky task because user can change first or/and last name
+# and can change level (buy subscription). Thus we have to find latest entry
+# for each user and insert it to the users table.
+# More accurate way is to keep all changes in the "users" dimension table along with effective date
+# for each row for the same userId but we omit it here for simplicity.
 user_table_insert = ("""
+    INSERT INTO users(
+        user_id
+        , first_name
+        , last_name
+        , gender
+        , level
+    )
+    SELECT e.userId
+        , e.firstName
+        , e.lastName
+        , e.gender
+        , e.level
+    FROM stg.events e
+    INNER JOIN (
+        SELECT userId
+            , MAX(ts) as ts
+        FROM stg.events
+        WHERE userId IS NOT NULL
+        GROUP BY userId
+    ) ge ON ge.userId = e.userId AND ge.ts = e.ts;
 """)
 
 song_table_insert = ("""
+    INSERT INTO songs(
+        song_id
+        , title
+        , artist_id
+        , year
+        , duration
+    )
+    SELECT DISTINCT song_id
+        , title
+        , artist_id
+        , year
+        , duration
+    FROM stg.songs
+    WHERE song_id IS NOT NULL
+        AND title IS NOT NULL;
 """)
 
 artist_table_insert = ("""
+    INSERT INTO artists(
+        artist_id
+        , name
+        , location
+        , latitude
+        , longitude
+    )
+    SELECT DISTINCT artist_id
+        , artist_name
+        , artist_location
+        , artist_latitude
+        , artist_longitude
+    FROM stg.songs
+    WHERE artist_id IS NOT NULL
+        AND artist_name IS NOT NULL;
 """)
 
+# Load all timestamps to the "time" dimension tables not only for the "NextSong" page events
+# because the same dimension table could be used with other fact tables rather than only with "songplays".
 time_table_insert = ("""
+    INSERT INTO time(
+        start_time
+        , hour
+        , day
+        , week
+        , month
+        , year
+        , weekday
+    )
+    SELECT DISTINCT ts
+        , EXTRACT(hour FROM ts) as hour
+        , EXTRACT(day FROM ts) as day
+        , EXTRACT(week FROM ts) as week
+        , EXTRACT(month FROM ts) as month
+        , EXTRACT(year FROM ts) as year
+        , EXTRACT(week FROM ts) as weekday
+    FROM stg.events;
 """)
 
 # QUERY LISTS
