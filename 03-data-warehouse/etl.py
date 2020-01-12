@@ -12,10 +12,14 @@ def load_staging_tables(cur, conn):
         - `staging.songs` with metadata about songs and artists.
         - `staging,events` with raw events from Sparkify service with information about user activity.
     """
-
+    print('ETL step 1. Copy raw data from Amazon S3 to Amazon Redshift staging tables...')
     for query in copy_table_queries:
-        cur.execute(query)
-        conn.commit()
+        try:
+            cur.execute(query)
+            conn.commit()
+        except psycopg2.Error as e:
+            print('Error occurred during execution of query: "%r". Error: "%r"' % query, e)
+    print('Done.')
 
 
 def insert_tables(cur, conn):
@@ -24,9 +28,14 @@ def insert_tables(cur, conn):
         This step includes data quality checks.
     """
 
+    print('ETL step 2. Load data from staging tables to dimension and fact tables...')
     for query in insert_table_queries:
-        cur.execute(query)
-        conn.commit()
+        try:
+            cur.execute(query)
+            conn.commit()
+        except psycopg2.Error as e:
+            print('Error occurred during execution of query: "%r". Error: "%r"' % query, e)
+    print('Done.')
 
 
 def main():
@@ -39,13 +48,17 @@ def main():
     config = configparser.ConfigParser()
     config.read('dwh.cfg')
 
-    conn = psycopg2.connect("host={} dbname={} user={} password={} port={}".format(*config['CLUSTER'].values()))
-    cur = conn.cursor()
+    try:
+        conn = psycopg2.connect("host={} dbname={} user={} password={} port={}".format(*config['CLUSTER'].values()))
+        cur = conn.cursor()
+    except psycopg2.Error as e:
+        print('Could not connect to the Amazon Redshift cluster. Error: "%r"' % e)
 
     load_staging_tables(cur, conn)
     insert_tables(cur, conn)
 
     conn.close()
+    print('All data was processed! ETL pipeline was successfully finished!')
 
 
 if __name__ == "__main__":
