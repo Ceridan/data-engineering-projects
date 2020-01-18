@@ -3,7 +3,7 @@
 ## Project Goals
 
 `Sparkify` is a startup which focused on music streaming. They have a lot of archive data with information about songs and artists. Also Sparkify collects information which tracks users of their service listen to.
-Sparkify wants to analyze collected date to better understand preferences of their users. All collected data is stored as bunch of JSON files which makes the task of data analysis and reporting difficult to solve.
+Sparkify wants to analyze collected data to better understand preferences of their users. All collected data is stored as bunch of JSON files which makes the task of data analysis and reporting difficult to solve.
 
 The main goal of this aims to solve this problem. The solution is to use relational database (PostgreSQL) and create a proper data model to represent all the company data about songs, artists and tracks which users listen to in the form convenient for analysis.
 Relational database is suitable well for this goal because it allows to query data using SQL.
@@ -31,7 +31,7 @@ Database schema contains 4 dimension tables (songs, artists, users and time) and
 
 Full database schema is shown on the following image:
 
-![sparkifydb](sparkifydb.png)
+![sparkifydb](images/sparkifydb.png)
 
 ## Project files
 
