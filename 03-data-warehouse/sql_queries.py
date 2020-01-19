@@ -26,9 +26,10 @@ time_table_drop = "DROP TABLE IF EXISTS time;"
 
 # CREATE TABLES
 
+# `song` and `artist` columns should be of type text because of very long names in case of bad character encoding.
 staging_events_table_create = ("""
     CREATE TABLE stg.events(
-        artist varchar(100),
+        artist text,
         auth varchar(100),
         firstName varchar(100),
         gender char(1),
@@ -41,9 +42,9 @@ staging_events_table_create = ("""
         page varchar(100),
         registration numeric,
         sessionId int,
-        song varchar(100),
+        song text,
         status int,
-        ts timestamp,
+        ts bigint,
         userAgent text,
         userId int
     );
@@ -56,9 +57,9 @@ staging_songs_table_create = ("""
         artist_latitude numeric,
         artist_longitude numeric,
         artist_location text,
-        artist_name varchar(100),
+        artist_name text,
         song_id char(18),
-        title varchar(100),
+        title text,
         duration numeric,
         year int
     );
@@ -71,7 +72,7 @@ songplay_table_create = ("""
         user_id int NOT NULL,
         level varchar(100) NOT NULL,
         song_id char(18) NOT NULL,
-        artist_id char(18) NOT NULL,
+        artist_id char(18),
         session_id int NOT NULL,
         location text,
         user_agent text
@@ -93,7 +94,7 @@ user_table_create = ("""
 song_table_create = ("""
     CREATE TABLE songs(
         song_id char(18) NOT NULL SORTKEY,
-        title varchar(100) NOT NULL,
+        title text NOT NULL,
         artist_id char(18),
         year int,
         duration numeric
@@ -104,7 +105,7 @@ song_table_create = ("""
 artist_table_create = ("""
     CREATE TABLE artists(
         artist_id char(18) NOT NULL SORTKEY,
-        name varchar(100) NOT NULL,
+        name text NOT NULL,
         location text,
         latitude numeric,
         longitude numeric
@@ -156,7 +157,7 @@ songplay_table_insert = ("""
         , location
         , user_agent
     )
-    SELECT e.ts
+    SELECT TIMESTAMP 'epoch' + e.ts / 1000 * INTERVAL '1 Second' as start_time
         , e.userId
         , e.level
         , s.song_id
@@ -166,7 +167,8 @@ songplay_table_insert = ("""
         , e.userAgent
     FROM stg.events e
     LEFT JOIN stg.songs s ON s.title = e.song
-    WHERE e.Page = 'NextSong';
+    WHERE e.Page = 'NextSong'
+        AND s.song_id IS NOT NULL;
 """)
 
 # Load "users" is a bit tricky task because user can change first or/and last name
@@ -245,13 +247,13 @@ time_table_insert = ("""
         , year
         , weekday
     )
-    SELECT DISTINCT ts
-        , EXTRACT(hour FROM ts) as hour
-        , EXTRACT(day FROM ts) as day
-        , EXTRACT(week FROM ts) as week
-        , EXTRACT(month FROM ts) as month
-        , EXTRACT(year FROM ts) as year
-        , EXTRACT(week FROM ts) as weekday
+    SELECT DISTINCT TIMESTAMP 'epoch' + ts / 1000 * INTERVAL '1 Second' as start_time
+        , EXTRACT(hour FROM start_time) as hour
+        , EXTRACT(day FROM start_time) as day
+        , EXTRACT(week FROM start_time) as week
+        , EXTRACT(month FROM start_time) as month
+        , EXTRACT(year FROM start_time) as year
+        , EXTRACT(weekday FROM start_time) as weekday
     FROM stg.events;
 """)
 

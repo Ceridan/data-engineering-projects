@@ -10,7 +10,7 @@ def load_staging_tables(cur, conn):
 
         JSON files are processed and copy into two staging tables:
         - `staging.songs` with metadata about songs and artists.
-        - `staging,events` with raw events from Sparkify service with information about user activity.
+        - `staging.events` with raw events from Sparkify service with information about user activity.
     """
     print('ETL step 1. Copy raw data from Amazon S3 to Amazon Redshift staging tables...')
     for query in copy_table_queries:

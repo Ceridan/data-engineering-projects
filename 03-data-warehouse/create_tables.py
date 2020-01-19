@@ -10,6 +10,9 @@ def create_schemas(cur, conn):
         There are two schemas used in DWH (Amazon Redshift):
         - `staging` schema to land the raw data loaded from the source.
         - `public` (default schema) with dimension and fact tables prepared for analytic queries.
+        
+        There is no function to drop schemas because usually we have to create it once.
+        Schemas do not change over time, unlike tables.
     """
     print('Create schemas...')
     for query in create_schema_queries:
@@ -52,7 +55,6 @@ def main():
 
     config = configparser.ConfigParser()
     config.read('dwh.cfg')
-
     try:
         conn = psycopg2.connect("host={} dbname={} user={} password={} port={}".format(*config['CLUSTER'].values()))
         cur = conn.cursor()
