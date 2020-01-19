@@ -11,7 +11,6 @@ According to the fact that Sparkify already choose the AWS as cloud provider the
 
 Project goals summary:
 
-- Setup and run the Amazon Redshift cluster in the AWS.
 - Create data model in Amazon Redshift includes staging area for raw date and star schema for analytic queries.
 - Build ETL pipeline to load raw data from Amazon S3 storage to the staging area and then load data from staging area to the star schema tables.
 - Prepare dashboard with examples of analytic queries against relational database.
@@ -20,10 +19,10 @@ Project goals summary:
 
 The ETL pipeline consists of two stages:
 
-1. Load raw data from the Amazon S3 storage to the staging area in the Amazon Redshift as is. This step allows to use COPY operation for the batch load the raw data. The data is extracted from JSON and landed to the staging tables. On this step saved all the data as is without quality checking and any transformation or aggregation.
-This step is necessary because it will speed up data loading from blobs and also prepare data for the second ETL pipeline step which includes JOINs to repartition the raw data and load it to star schema.
+1. Load raw data from the Amazon S3 storage to the staging area in the Amazon Redshift as is. This stage allows to use COPY operation for the batch load the raw data. The data is extracted from JSON and landed to the staging tables. On this stage all the data is saved as is without quality checking and any transformation or aggregation.
+This stage is necessary because it will speed up data loading from blobs and also prepare data for the second ETL pipeline stage which includes JOINs to repartition the raw data and load it to star schema.
 
-2. Load data from staging tables to the star schema tables. This step includes repartition of data and data quality checks to ensure data integrity.
+2. Load data from staging tables to the star schema tables. This stage includes repartition of data and data quality checks to ensure data integrity.
 
 ## Data model for the Sparkify database in Amazon Redshift
 
@@ -71,39 +70,61 @@ Here is the list of project files and their purpose:
 - `create_tables.py` is used to prepare a new database in the Amazon Redshift for future work. It uses `sql_queries.py` to run DROP and CREATE table statements to re-create all the tables.
 - `etl.py` implements the ETL pipeline. This script load (and processes) JSON files from Amazon S3 storage to Amazon Redshift.
 - `dashboard.ipynb` is a Jupyter notebook for the BI-team to run analytic queries against Amazon Redshift.
-- `dwh.cfg` configuration file which contains settings to connect to the AWS.
+- `dwh.cfg` configuration file which contains settings to connect to the Amazon Redshift cluster.
 - `README.md` – this README file. 
 
-## How to prepare the Amazon Redshift cluster
+## Prerequisites: Setup Amazon Redshift cluster
 
-1. Create IAM role to allow Amazon Redshift to read data from Amazon S3 and allow external connections to the Amazon Redshift. Ask your infrastructure engineers to complete these step.
+It is required to setup Amazon Redshift cluster first. There are several approaches how to achieve this goal:
 
-2. Run Amazon Redshift cluster. Minimal cluster configuration is:
+- Amazon Console using web browser and create roles, security groups and Amazon Redshift cluster in point-and-click manner.
+- AWS CLI - command line utility which can be used by hand or in automated scripts.
+- Infrastructure-as-Code - the modern approach using SDK libraries and keep all the infrastructure as code.
 
-- `dc2.large` nodes x4. 
+For this project we assume that the Amazon Redshift cluster already up and running because the main goal of the project is to create proper data model in the Sparkify Data Warehouse and implement ETL pipeline.
 
-## How to run ETL pipeline
+### The requirements to Amazon Redshift cluster are
 
-1. Run `create_tables.py`. For example, you can do it from the Terminal:
+The following table shows the cluster requirements:
+
+| Parameter          | Value      |   
+|--------------------|------------|
+| Region (location)* | us-west-2  |
+| Cluster type       | multi-node |
+| Nodes count        | 4          |
+| Node type          | dc2.large  |
+
+_(*): Region is important because cross-region data ingestion to Redshift is not allowed. Sparkift raw data currently located in the `us-west-2` region._
+
+## How to prepare tables and run ETL pipeline
+
+1. Edit `dwh.cfg` file and fill all variables with values for your cluster setup.
+    > CAUTION. This information can be stored in the repository because using this variables anyone can get access to the cluster!
+    
+    Configuration file contains three sections:
+    - `CLUSTER` variables that allows to connect to the Amazon Redshift cluster.
+    - `IAM_ROLE` - section for the IAM role with policy to access Amazon S3 storage to ingest data from S3 to Redshift.
+    - `S3` - already filled section with the path to S3 buckets with Sparkify raw data.
+
+2. Run `create_tables.py`. For example, you can do it from the Terminal:
     
     ```bash
     python create_tables.py
     ```
    
-2. Run `etl.py` to execute the ETL pipeline:
+3. Run `etl.py` to execute the ETL pipeline:
    
    ```bash
    python etl.py 
    ```
 
-If both steps are executed correctly without errors then the DWH is ready for analytic queries.
+If all steps are executed correctly without errors then the DWH is ready for analytic queries.
 
 ## Dashboard for analytic queries
 
-`dashboard.ipynb` has examples of analytic queries against `sparkifydb`.
+`dashboard.ipynb` has examples of analytic queries against Sparkify Date Warehouse.
 
 Currently, you can run following queries:
-- How many unique users have Sparkify? How many free/paid users?
 - Find top 10 most popular songs to build top charts.
 - Report: Weekly statistics to understand how many songs users listen weekly and how many unique users use Sparkify.
 
