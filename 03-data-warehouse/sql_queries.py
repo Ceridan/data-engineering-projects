@@ -9,6 +9,7 @@ IAM_ROLE = config.get('IAM_ROLE', 'ARN')
 LOG_DATA = config.get('S3', 'LOG_DATA')
 LOG_JSONPATH = config.get('S3', 'LOG_JSONPATH')
 SONG_DATA = config.get('S3', 'SONG_DATA')
+REGION = config.get('S3', 'REGION')
 
 # CREATE SCHEMAS
 
@@ -70,10 +71,10 @@ songplay_table_create = ("""
         songplay_id bigint IDENTITY(0, 1) SORTKEY,
         start_time timestamp NOT NULL,
         user_id int NOT NULL,
-        level varchar(100) NOT NULL,
+        level varchar(100),
         song_id char(18) NOT NULL,
-        artist_id char(18),
-        session_id int NOT NULL,
+        artist_id char(18) NOT NULL,
+        session_id int,
         location text,
         user_agent text
     )
@@ -83,10 +84,10 @@ songplay_table_create = ("""
 user_table_create = ("""
     CREATE TABLE users(
         user_id int NOT NULL SORTKEY,
-        first_name varchar(100) NOT NULL,
-        last_name varchar(100) NOT NULL,
+        first_name varchar(100),
+        last_name varchar(100),
         gender char(1),
-        level varchar(100) NOT NULL
+        level varchar(100)
     )
     DISTSTYLE ALL;
 """)
@@ -132,20 +133,23 @@ staging_events_copy = ("""
     COPY stg.events
     FROM {}
     IAM_ROLE {}
-    FORMAT AS JSON {};
-""").format(LOG_DATA, IAM_ROLE, LOG_JSONPATH)
+    FORMAT AS JSON {}
+    REGION {};
+""").format(LOG_DATA, IAM_ROLE, LOG_JSONPATH, REGION)
 
 staging_songs_copy = ("""
     COPY stg.songs
     FROM {}
     IAM_ROLE {}
-    FORMAT AS JSON 'auto';
-""").format(SONG_DATA, IAM_ROLE)
+    FORMAT AS JSON 'auto'
+    REGION {};
+""").format(SONG_DATA, IAM_ROLE, REGION)
 
 # FINAL TABLES
-# Load songplays from staging tables. Using LEFT JOIN to join "stg.events" with "stg.songs"
-# because it is possible situation when some song is missing in the metadata
-# but we want to keep such events for further investigation.
+# During `songplays` loading we want to separate songs with same name from each other, thus we have to join by
+# multiple fields: `title`, `artist_name` and `duration`.
+# Also we want to add simple quality check and skip rows with unknown `song_id` or `artist_id` for now. In more general
+# case we have to create some "empty identifier" for such rows or move it to special table to further investigation.
 songplay_table_insert = ("""
     INSERT INTO songplays(
         start_time
@@ -166,9 +170,12 @@ songplay_table_insert = ("""
         , e.location
         , e.userAgent
     FROM stg.events e
-    LEFT JOIN stg.songs s ON s.title = e.song
+    INNER JOIN stg.songs s ON s.title = e.song
+                        AND s.artist_name= e.artist
+                        AND s.duration = e.length
     WHERE e.Page = 'NextSong'
-        AND s.song_id IS NOT NULL;
+        AND s.song_id IS NOT NULL
+        AND s.artist_id IS NOT NULL;
 """)
 
 # Load "users" is a bit tricky task because user can change first or/and last name
