@@ -10,8 +10,8 @@ from pyspark.sql.types import StructType, StructField, StringType, IntegerType, 
 config = configparser.ConfigParser()
 config.read('dl.cfg')
 
-os.environ['AWS_ACCESS_KEY_ID'] = config['AWS_ACCESS_KEY_ID']
-os.environ['AWS_SECRET_ACCESS_KEY'] = config['AWS_SECRET_ACCESS_KEY']
+os.environ['AWS_ACCESS_KEY_ID'] = config.get('S3', 'AWS_ACCESS_KEY_ID')
+os.environ['AWS_SECRET_ACCESS_KEY'] = config.get('S3', 'AWS_SECRET_ACCESS_KEY')
 
 
 def create_spark_session():
@@ -28,6 +28,8 @@ def create_spark_session():
 def process_song_data(spark, input_data, output_data):
     """Process raw songs dataset using Spark and create Songs and Artists dimensional tables stored in S3"""
 
+    print('Start processing song data...')
+
     # Read song data file
     song_data_path = input_data + 'song_data/*/*/*/*'
     df = spark.read.json(song_data_path)
@@ -38,12 +40,15 @@ def process_song_data(spark, input_data, output_data):
     # Process Data Frame with raw songs data and create Artists dimensional table stored in S3
     process_artists(spark, df, output_data)
 
+    print('Finish processing song data.')
 
 def process_log_data(spark, input_data, output_data):
     """
         1. Process raw logs dataset using Spark and create Users and Time dimensional tables stored in S3.
         2. Process both raw logs and songs dataset and create Songplays fact table stored in S3.
     """
+
+    print('Start processing log data...')
 
     # Read log data file
     log_data_path = input_data + 'log_data/*'
@@ -62,9 +67,13 @@ def process_log_data(spark, input_data, output_data):
     # Process both Data Frames with raw logs and songs data and create Songplays fact table stored in S3
     process_songplays(spark, song_df, log_df, output_data)
 
+    print('Finish processing log data.')
+
 
 def process_songs(spark, df, output_data):
     """Process Data Frame with raw songs data using Spark and create Songs dimensional table stored in S3"""
+
+    print('Processing songs...')
 
     # Define schema for the Songs table. Schema also could be inferred implicitly
     # but defining it manually protects us from wrong type conversions
@@ -86,17 +95,23 @@ def process_songs(spark, df, output_data):
     # Create Songs table using clean data and schema.
     songs_table = spark.createDataFrame(songs_rdd, songs_schema)
 
+    print('Writing songs_table data frame to parquet to S3')
+
     # Write Songs table to parquet files partitioned by year and artist to S3
     songs_table_path = output_data + 'tables/songs/songs.parquet'
     songs_table \
-        .repartition('year', 'artist_id') \
         .write \
+        .partitionBy('year', 'artist_id') \
         .mode('overwrite') \
         .parquet(songs_table_path)
+
+    print('Songs table has been created.')
 
 
 def process_artists(spark, df, output_data):
     """Process Data Frame with raw songs data using Spark and create Artists dimensional table stored in S3"""
+
+    print('Processing artists...')
 
     # Define schema for the Artists table. Schema also could be inferred implicitly
     # but defining it manually protects us from wrong type conversions
@@ -118,12 +133,16 @@ def process_artists(spark, df, output_data):
     # Create Artists table using clean data and schema.
     artists_table = spark.createDataFrame(artists_rdd, artists_schema)
 
+    print('Writing artists_table data frame to parquet to S3')
+
     # Write Artists table to parquet files to S3
     artists_table_path = output_data + 'tables/artists/artists.parquet'
     artists_table \
         .write \
         .mode('overwrite') \
         .parquet(artists_table_path)
+
+    print('Artists table has been created.')
 
 
 def process_users(spark, df, output_data):
@@ -143,6 +162,8 @@ def process_users(spark, df, output_data):
             table only latest occurrence in the log file for each user (ordered by timestamp).
             For the current processing task we will use the second approach: write only the latest state of our users.
     """
+
+    print('Processing users...')
 
     # Define schema for the Users table. Schema also could be inferred implicitly
     # but defining it manually protects us from wrong type conversions
@@ -175,12 +196,16 @@ def process_users(spark, df, output_data):
     # Create Users table using clean data and schema.
     users_table = spark.createDataFrame(users_rdd, users_schema)
 
+    print('Writing users_table data frame to parquet to S3')
+
     # Write Users table to parquet files to S3
     users_table_path = output_data + 'tables/users/users.parquet'
     users_table \
         .write \
         .mode('overwrite') \
         .parquet(users_table_path)
+
+    print('Users table has been created.')
 
 
 def process_time(spark, df, output_data):
@@ -193,6 +218,8 @@ def process_time(spark, df, output_data):
         - Use power of Spark and its predefined functions to work with timestamp.
         For the current processing task we will use the second approach: rely on Spark predefined functions.
     """
+
+    print('Processing time...')
 
     # Define schema for the Time table. Schema also could be inferred implicitly
     # but defining it manually protects us from wrong type conversions
@@ -213,26 +240,30 @@ def process_time(spark, df, output_data):
         .distinct() \
         .withColumn('timestamp', (col('ts') / 1000).cast(TimestampType())) \
         .select(
-            col('timestamp').alias('start_time'),
-            hour('timestamp').alias('hour'),
-            dayofmonth('timestamp').alias('day'),
-            weekofyear('timestamp').alias('week'),
-            month('timestamp').alias('month'),
-            year('timestamp').alias('year'),
-            date_format(col('timestamp'), 'F').cast(IntegerType()).alias('weekday')
-        ) \
+        col('timestamp').alias('start_time'),
+        hour('timestamp').alias('hour'),
+        dayofmonth('timestamp').alias('day'),
+        weekofyear('timestamp').alias('week'),
+        month('timestamp').alias('month'),
+        year('timestamp').alias('year'),
+        date_format(col('timestamp'), 'F').cast(IntegerType()).alias('weekday')
+    ) \
         .rdd
 
     # Create Time table using clean data and schema.
     time_table = spark.createDataFrame(time_rdd, time_schema)
 
+    print('Writing time_table data frame to parquet to S3')
+
     # Write Time table to parquet files partitioned by year and month to S3
     time_table_path = output_data + 'tables/time/time.parquet'
     time_table \
-        .repartition('year', 'month') \
         .write \
+        .partitionBy('year', 'month') \
         .mode('overwrite') \
         .parquet(time_table_path)
+
+    print('Time table has been created.')
 
 
 def process_songplays(spark, song_df, log_df, output_data):
@@ -249,8 +280,11 @@ def process_songplays(spark, song_df, log_df, output_data):
         - Songs data `duration` should match logs data `length`.
     """
 
+    print('Processing songplays...')
+
     # Define schema for the Songplays table. Schema also could be inferred implicitly
-    # but defining it manually protects us from wrong type conversions
+    # but defining it manually protects us from wrong type conversions.
+    # Songplays schema contains two additional columns: "year" and "month" for partitioning.
     songplays_schema = StructType([
         StructField('songplay_id', LongType(), nullable=False),
         StructField('start_time', TimestampType(), nullable=False),
@@ -260,7 +294,9 @@ def process_songplays(spark, song_df, log_df, output_data):
         StructField('artist_id', StringType(), nullable=False),
         StructField('session_id', LongType(), nullable=True),
         StructField('location', StringType(), nullable=True),
-        StructField('user_agent', StringType(), nullable=True)
+        StructField('user_agent', StringType(), nullable=True),
+        StructField('year', IntegerType(), nullable=False),
+        StructField('month', IntegerType(), nullable=False)
     ])
 
     # Cleanup data. Remove rows with empty song_id or artist_id from Songs data.
@@ -284,31 +320,43 @@ def process_songplays(spark, song_df, log_df, output_data):
         .withColumn('id', monotonically_increasing_id() + 1) \
         .withColumn('start_time', (col('ts') / 1000).cast(TimestampType())) \
         .withColumn('user_id', col('userId').cast(LongType())) \
-        .select('id', 'start_time', 'user_id', 'level', 'song_id', 'artist_id', 'sessionId', 'location', 'userAgent') \
+        .withColumn('year', year('start_time')) \
+        .withColumn('month', month('start_time')) \
+        .select('id', 'start_time', 'user_id', 'level', 'song_id', 'artist_id', 'sessionId', 'location',
+                'userAgent', 'year', 'month') \
+        .repartition('year', 'month') \
         .rdd
 
     # Create Songplays table using clean data and schema.
     songplays_table = spark.createDataFrame(songplays_rdd, songplays_schema)
 
+    print('Writing songplays_table data frame to parquet to S3')
+
     # Write Songplays table to parquet files partitioned by year and month to S3
     songplays_table_path = output_data + 'tables/songplays/songplays.parquet'
     songplays_table \
-        .repartition(year('start_time'), month('start_time')) \
         .write \
+        .partitionBy('year', 'month') \
         .mode('overwrite') \
         .parquet(songplays_table_path)
+
+    print('Songplays table has been created.')
 
 
 def main():
     """Create Spark session and call functions to process raw logs and songs datasets"""
 
+    # Create Spark session for application "Sparkify Data Lake"
     spark = create_spark_session()
+
     input_data = "s3a://udacity-dend/"
-    output_data = ""
+    output_data = "s3n://ceri-sparkify"
 
     process_song_data(spark, input_data, output_data)
     process_log_data(spark, input_data, output_data)
 
+    # Stops Spark session for the job
+    spark.stop()
 
 # Entrypoint for the Python program
 if __name__ == "__main__":
