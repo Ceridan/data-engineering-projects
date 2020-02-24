@@ -58,11 +58,18 @@ Here is the list of project files and their purpose:
 1. Edit `dl.cfg` file and fill all variables to access S3 storage.
     > CAUTION. This information can be stored in the repository because using this variables anyone can get access your data!
 
-2. Run `etl.py` in terminal to execute the ETL pipeline:
+2. There are two options how to run the ETL pipeline:
+    
+    2.1. For single run or local experiments just run `etl.py` in terminal to execute the ETL pipeline:
    
    ```bash
    python etl.py 
    ```
+   
+   2.2. Also you may run it using `spark-submit` command on cluster which allows you to provide several additional settings. The simplest run is as following:
+   ```bash
+   spark-submit --master yarn ./etl.py
+   ``` 
 
 ## Dashboard for analytic queries
 
