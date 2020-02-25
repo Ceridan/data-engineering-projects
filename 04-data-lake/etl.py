@@ -6,7 +6,6 @@ from pyspark.sql.functions import date_format, row_number, monotonically_increas
 from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, LongType, DoubleType, TimestampType
 
-
 config = configparser.ConfigParser()
 config.read('dl.cfg')
 
@@ -41,6 +40,7 @@ def process_song_data(spark, input_data, output_data):
     process_artists(spark, df, output_data)
 
     print('Finish processing song data.')
+
 
 def process_log_data(spark, input_data, output_data):
     """
@@ -85,10 +85,12 @@ def process_songs(spark, df, output_data):
         StructField('duration', DoubleType(), nullable=True)
     ])
 
-    # Cleanup data. Remove rows with empty song_id or title and select required fields for Songs table
+    # Cleanup data. Remove rows with empty song_id or title and select required fields for Songs table.
+    # We also use dropDuplicates by song_id here to avoid the same song row appears twice in the table.
     songs_rdd = df \
         .filter(col('song_id').isNotNull()) \
         .filter(col('title').isNotNull()) \
+        .dropDuplicates(['song_id']) \
         .select('song_id', 'title', 'artist_id', 'year', 'duration') \
         .rdd
 
@@ -123,10 +125,12 @@ def process_artists(spark, df, output_data):
         StructField('longitude', DoubleType(), nullable=True)
     ])
 
-    # Cleanup data. Remove rows with empty artist_id or artist_name and select required fields for Artists table
+    # Cleanup data. Remove rows with empty artist_id or artist_name and select required fields for Artists table.
+    # We also use dropDuplicates by artist_id here to avoid the same artist row appears twice in the table.
     artists_rdd = df \
         .filter(col('artist_id').isNotNull()) \
         .filter(col('artist_name').isNotNull()) \
+        .dropDuplicates(['artist_id']) \
         .select('artist_id', 'artist_name', 'artist_location', 'artist_latitude', 'artist_longitude') \
         .rdd
 
@@ -184,9 +188,14 @@ def process_users(spark, df, output_data):
         .rowsBetween(Window.unboundedPreceding, Window.currentRow)
 
     # Cleanup data. Remove rows with empty userId, apply Window function to find latest occurrences for each user
-    # and select required fields for Users table
+    # and select required fields for Users table.
+    # We also use dropDuplicates by userId here to avoid the same artist row appears twice in the table.
+    # We also can avoid using dropDuplicates method here because final data already will be unique because of our logic
+    # with Window function and getting only the latest row for each userId. But we add dropDuplicates here to make
+    # our solution more robust.
     users_rdd = df \
         .filter(col('userId').isNotNull()) \
+        .dropDuplicates('userId') \
         .withColumn('num', row_number().over(users_window)) \
         .withColumn('user_id', col('userId').cast(LongType())) \
         .filter(col('num') == 1) \
@@ -235,19 +244,20 @@ def process_time(spark, df, output_data):
 
     # Take unique timestamps from the log data and apply various functions to extract different parts of datetime
     # on the select stage to get all required fields for the Time table.
+    # We also use dropDuplicates by timestamp here to avoid the same timestamp row appears twice in the table.
     time_rdd = df \
         .select('ts') \
-        .distinct() \
         .withColumn('timestamp', (col('ts') / 1000).cast(TimestampType())) \
+        .dropDuplicates(['timestamp']) \
         .select(
-        col('timestamp').alias('start_time'),
-        hour('timestamp').alias('hour'),
-        dayofmonth('timestamp').alias('day'),
-        weekofyear('timestamp').alias('week'),
-        month('timestamp').alias('month'),
-        year('timestamp').alias('year'),
-        date_format(col('timestamp'), 'F').cast(IntegerType()).alias('weekday')
-    ) \
+            col('timestamp').alias('start_time'),
+            hour('timestamp').alias('hour'),
+            dayofmonth('timestamp').alias('day'),
+            weekofyear('timestamp').alias('week'),
+            month('timestamp').alias('month'),
+            year('timestamp').alias('year'),
+            date_format(col('timestamp'), 'F').cast(IntegerType()).alias('weekday')
+        ) \
         .rdd
 
     # Create Time table using clean data and schema.
@@ -357,6 +367,7 @@ def main():
 
     # Stops Spark session for the job
     spark.stop()
+
 
 # Entrypoint for the Python program
 if __name__ == "__main__":
