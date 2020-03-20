@@ -4,6 +4,7 @@ from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
 from ..helpers import LoadOperatorMode, table_to_query_map
 
+
 class LoadFactOperator(BaseOperator):
     """
         LoadFactOperator loads data from staging area to fact tables.

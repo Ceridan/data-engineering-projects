@@ -1,6 +1,12 @@
 from .sql_queries import SqlQueries
 from .load_operator_mode import LoadOperatorMode
 from .save_mode import SaveMode
+from .data_quality_checks import (
+    DataQualityCheckType,
+    DataQualityCheckBase,
+    TableIsNotEmptyDataQualityCheck,
+    ColumnDoesNotContainNullsDataQualityCheck,
+    CustomDataQualityCheck)
 
 
 table_to_query_map = {
@@ -15,4 +21,9 @@ __all__ = [
     'table_to_query_map',
     'LoadOperatorMode',
     'SaveMode',
+    'DataQualityCheckBase',
+    'DataQualityCheckType',
+    'TableIsNotEmptyDataQualityCheck',
+    'ColumnDoesNotContainNullsDataQualityCheck',
+    'CustomDataQualityCheck',
 ]
