@@ -75,8 +75,8 @@ class ColumnDoesNotContainNullsDataQualityCheck(DataQualityCheckBase):
 
 class CustomDataQualityCheck(DataQualityCheckBase):
     def __init__(self, query, expected_result):
-        self.query = query
-        self.expected_result = expected_result
+        self._query = query
+        self._expected_result = expected_result
 
     @property
     def type(self):
@@ -84,8 +84,9 @@ class CustomDataQualityCheck(DataQualityCheckBase):
 
     @property
     def query(self):
-        return self.query
+        return self._query
 
     @property
     def expected_result(self):
-        return self.expected_result
+        return self._expected_result
+
