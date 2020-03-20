@@ -1,3 +1,4 @@
+import psycopg2
 from airflow.contrib.hooks.aws_hook import AwsHook
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import BaseOperator
@@ -22,7 +23,7 @@ class StageToRedshiftOperator(BaseOperator):
                  s3_bucket='',
                  s3_key='',
                  *args, **kwargs):
-        """StageToRedshiftOperator operator constructor. Defines the parameters required for the operator."""
+        """StageToRedshiftOperator constructor. Defines the parameters required for the operator."""
 
         super(StageToRedshiftOperator, self).__init__(*args, **kwargs)
         self.redshift_conn_id = redshift_conn_id
@@ -35,27 +36,31 @@ class StageToRedshiftOperator(BaseOperator):
     def execute(self, context):
         """Prepare parameters for COPY SQL statement and invoke COPY operation from S3 to Redshift"""
 
-        self.log.info('Initialing AWS hook')
-        aws = AwsHook(self.aws_credentials_id)
-        aws_credentials = aws.get_credentials(region_name=self.aws_region)
+        try:
+            self.log.info('Initialing AWS hook')
+            aws = AwsHook(self.aws_credentials_id)
+            aws_credentials = aws.get_credentials(region_name=self.aws_region)
 
-        self.log.info('Initialing Postgres hook (for Redshift)')
-        redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
+            self.log.info('Initialing Postgres hook (for Redshift)')
+            redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
 
-        self.log.info('Clearing data from destination Redshift table')
-        redshift.run(f'DELETE FROM {self.table};')
+            self.log.info('Clearing data from destination table')
+            redshift.run(f'DELETE FROM {self.table};')
 
-        self.log.info('Copying data from S3 to Redshift...')
-        s3_rendered_key = self.s3_key.format(**context)
-        s3_data_path = f's3://{self.s3_bucket}/{s3_rendered_key}'
-        formatted_sql = StageToRedshiftOperator.get_formatted_copy_sql(
-            table=self.table,
-            s3_data_path=s3_data_path,
-            aws_key=aws_credentials.access_key,
-            aws_secret=aws_credentials.secret_key,
-            aws_region=self.aws_region)
-        redshift.run(formatted_sql)
-        self.log.info(f'Copying from S3 to Redshift table "{self.table}" successfully completed!')
+            self.log.info('Copying data from S3 to Redshift...')
+            s3_rendered_key = self.s3_key.format(**context)
+            s3_data_path = f's3://{self.s3_bucket}/{s3_rendered_key}'
+            formatted_sql = StageToRedshiftOperator.get_formatted_copy_sql(
+                table=self.table,
+                s3_data_path=s3_data_path,
+                aws_key=aws_credentials.access_key,
+                aws_secret=aws_credentials.secret_key,
+                aws_region=self.aws_region)
+            redshift.run(formatted_sql)
+            self.log.info(f'Copying from S3 to Redshift table "{self.table}" successfully completed!')
+        except psycopg2.Error as e:
+            self.log.error(f'Error occurred during during COPY operation: {e}')
+            raise
 
     @staticmethod
     def get_formatted_copy_sql(table, s3_data_path, aws_key, aws_secret, aws_region):
