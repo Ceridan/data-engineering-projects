@@ -2,6 +2,7 @@ import psycopg2
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
+from ..helpers import DataQualityCheckBase
 
 
 class DataQualityOperator(BaseOperator):
@@ -43,11 +44,16 @@ class DataQualityOperator(BaseOperator):
             redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
 
             for check in self.data_quality_checks:
+                assert issubclass(check, DataQualityCheckBase), \
+                    f'Wrong object "{check}" for data quality check. It should be inherited from DataQualityCheckBase.'
+
                 self.log.info(f'Data quality check of type "{check.type}". Query:\n{check.query}')
                 actual_result = redshift.run(check.query)
                 expected_result = check.expected_result
-                assert expected_result == actual_result,\
+
+                assert expected_result == actual_result, \
                     f'Data quality check type: "{check.type}", expected: {expected_result}, actual: {actual_result}'
+
         except psycopg2.Error as e:
             self.log.error(f'Error occurred during during LOAD operation: {e}')
             raise

@@ -89,4 +89,3 @@ class CustomDataQualityCheck(DataQualityCheckBase):
     @property
     def expected_result(self):
         return self._expected_result
-
