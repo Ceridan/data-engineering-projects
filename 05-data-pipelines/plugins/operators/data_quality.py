@@ -2,7 +2,7 @@ import psycopg2
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
-from ..helpers import DataQualityCheckBase
+from helpers import DataQualityCheckBase
 
 
 class DataQualityOperator(BaseOperator):
