@@ -19,15 +19,18 @@ from .helpers import (
     CustomDataQualityCheck
 )
 
+
 # Defining the plugin class
 class SparkifyPlugin(AirflowPlugin):
     name = 'sparkify_plugin'
+
     operators = [
         operators.StageToRedshiftOperator,
         operators.LoadFactOperator,
         operators.LoadDimensionOperator,
         operators.DataQualityOperator
     ]
+
     helpers = [
         helpers.table_to_query_map,
         helpers.LoadOperatorMode,
