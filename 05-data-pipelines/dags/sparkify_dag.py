@@ -8,8 +8,9 @@ from airflow.operators import (
     LoadFactOperator,
     LoadDimensionOperator,
     DataQualityOperator)
-from ..plugins.helpers import LoadOperatorMode, SaveMode
-from ..plugins.helpers import (
+from helpers.load_operator_mode import LoadOperatorMode
+from helpers.save_mode import SaveMode
+from helpers.data_quality_checks import (
     TableIsNotEmptyDataQualityCheck,
     ColumnDoesNotContainNullsDataQualityCheck,
     CustomDataQualityCheck)

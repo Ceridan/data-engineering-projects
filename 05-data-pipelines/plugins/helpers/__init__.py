@@ -1,7 +1,7 @@
-from .sql_queries import SqlQueries
-from .load_operator_mode import LoadOperatorMode
-from .save_mode import SaveMode
-from .data_quality_checks import (
+from helpers.sql_queries import SqlQueries
+from helpers.load_operator_mode import LoadOperatorMode
+from helpers.save_mode import SaveMode
+from helpers.data_quality_checks import (
     DataQualityCheckType,
     DataQualityCheckBase,
     TableIsNotEmptyDataQualityCheck,
@@ -25,5 +25,5 @@ __all__ = [
     'DataQualityCheckType',
     'TableIsNotEmptyDataQualityCheck',
     'ColumnDoesNotContainNullsDataQualityCheck',
-    'CustomDataQualityCheck',
+    'CustomDataQualityCheck'
 ]
